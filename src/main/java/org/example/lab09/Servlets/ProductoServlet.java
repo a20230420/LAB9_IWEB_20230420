@@ -31,7 +31,11 @@ public class ProductoServlet extends HttpServlet {
                 view.forward(request, response);
                 break;
             case "listar":
-                Usuario usuario = (Usuario)request.getSession().getAttribute("usuarioSession");
+                Usuario usuario = (Usuario) request.getSession().getAttribute("usuarioSession");
+                if (usuario == null) {
+                    response.sendRedirect(request.getContextPath() + "/LoginServlet");
+                    return;
+                }
                 int idUsuario = usuario.getId_usuario();
 
                 ProductoDao productoDao = new ProductoDao();
