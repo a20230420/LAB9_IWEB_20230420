@@ -12,34 +12,41 @@ public class ProductoDao extends BaseDao{
         ArrayList<ProductoDTO> productos = new ArrayList<>();
 
         String sql = """
-        SELECT p.id_producto AS id,
-               p.nombre,
-               c.nombre AS categoriaNombre,
-               p.precio,
-               p.stock
+        SELECT  p.id_producto AS id,
+                p.nombre,
+                c.nombre AS categoriaNombre,
+                p.precio,
+                (p.stock - IFNULL(ci.sum_cant, 0)) AS stock
         FROM producto p
-        INNER JOIN categoria c ON p.id_categoria = c.id_categoria
+        JOIN categoria c ON p.id_categoria = c.id_categoria
+        LEFT JOIN (
+            SELECT id_producto, SUM(cantidad) AS sum_cant
+            FROM carrito_item
+            WHERE id_usuario = ?
+            GROUP BY id_producto
+        ) ci ON ci.id_producto = p.id_producto
         ORDER BY p.id_producto
     """;
 
         try (Connection conn = this.getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(sql);
-             ResultSet rs = pstmt.executeQuery()) {
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
 
-            while (rs.next()) {
-                ProductoDTO producto = new ProductoDTO();
-                producto.setId(rs.getInt("id"));
-                producto.setNombre(rs.getString("nombre"));
-                producto.setCategoriaNombre(rs.getString("categoriaNombre"));
-                producto.setPrecio(rs.getDouble("precio"));
-                producto.setStock(rs.getInt("stock"));
-                productos.add(producto);
+            pstmt.setInt(1, idUsuario);  // 🔥 faltaba esto
+
+            try (ResultSet rs = pstmt.executeQuery()) {
+                while (rs.next()) {
+                    ProductoDTO producto = new ProductoDTO();
+                    producto.setId(rs.getInt("id"));
+                    producto.setNombre(rs.getString("nombre"));
+                    producto.setCategoriaNombre(rs.getString("categoriaNombre"));
+                    producto.setPrecio(rs.getDouble("precio"));
+                    producto.setStock(rs.getInt("stock"));
+                    productos.add(producto);
+                }
             }
-
         } catch (Exception e) {
             e.printStackTrace();
         }
-
         return productos;
     }
 
